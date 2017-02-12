@@ -18,6 +18,7 @@ variable error_404_document {
 }
 
 variable ssl_certificate_arn {
+  default = ""
   description = "ARN of the certificate covering the domain plus subdomains under which the website is accessed, e.g. domain.com and *.domain.com"
 }
 
@@ -63,6 +64,8 @@ EOF
 
 # Cloudfront in front of the bucket
 resource "aws_cloudfront_distribution" "cdn" {
+  count = "${var.ssl_certificate_arn != "" ? 1 : 0}"
+  
   origin {
     domain_name = "${aws_s3_bucket.storage_bucket.bucket_domain_name}"
     origin_id   = "origin-${var.domain}"
