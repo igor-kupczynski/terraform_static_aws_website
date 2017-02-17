@@ -28,6 +28,10 @@ output "s3_url" {
   value = "${aws_s3_bucket.storage_bucket.website_endpoint}"
 }
 
+output "s3_www_url" {
+  value = "${aws_s3_bucket.storage_bucket.www_redirect}"
+}
+
 output "cloudfront_url" {
   value = "${aws_cloudfront_distribution.cdn.domain_name}"
 }
@@ -58,6 +62,31 @@ EOF
   website {
     index_document = "${var.index_document}"
     error_document = "${var.error_404_document}"
+  }
+}
+
+# Bucket to redirect www --> non-www
+resource "aws_s3_bucket" "www_redirect" {
+  bucket = "www-${var.domain}"
+  acl = "public-read"
+
+  policy = <<EOF
+{
+  "Version":"2012-10-17",
+  "Statement":[{
+	"Sid":"PublicReadGetObject",
+        "Effect":"Allow",
+	  "Principal": "*",
+      "Action":["s3:GetObject"],
+      "Resource":["arn:aws:s3:::www-${var.domain}/*"
+      ]
+    }
+  ]
+}
+EOF
+
+  website {
+    redirect_all_requests_to = "http://${var.domain}"  // TODO: replace for https
   }
 }
 
