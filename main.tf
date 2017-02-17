@@ -67,7 +67,7 @@ EOF
 
 # Bucket to redirect www --> non-www
 resource "aws_s3_bucket" "www_redirect" {
-  bucket = "www-${var.domain}"
+  bucket = "www.${var.domain}"
   acl = "public-read"
 
   policy = <<EOF
@@ -78,7 +78,7 @@ resource "aws_s3_bucket" "www_redirect" {
         "Effect":"Allow",
 	  "Principal": "*",
       "Action":["s3:GetObject"],
-      "Resource":["arn:aws:s3:::www-${var.domain}/*"
+      "Resource":["arn:aws:s3:::www.${var.domain}/*"
       ]
     }
   ]
