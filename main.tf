@@ -22,6 +22,11 @@ variable ssl_certificate_arn {
   description = "ARN of the certificate covering the domain plus subdomains under which the website is accessed, e.g. domain.com and *.domain.com"
 }
 
+variable redirect_www {
+  default = ""
+  description = "Redirect www.${domain} --> https://${domain}. If not set do not redirect."
+}
+
 
 # --- Outputs --------------------------------------------------------------
 output "s3_url" {
@@ -75,6 +80,8 @@ EOF
 
 # Bucket to redirect www --> non-www
 resource "aws_s3_bucket" "www_redirect" {
+  count = "${var.redirect_www != "" ? 1 : 0}"
+  
   bucket = "www.${var.domain}"
   acl = "public-read"
 
@@ -94,7 +101,7 @@ resource "aws_s3_bucket" "www_redirect" {
 EOF
 
   website {
-    redirect_all_requests_to = "http://${var.domain}"  // TODO: replace for https
+    redirect_all_requests_to = "https://${var.domain}"
   }
 }
 
