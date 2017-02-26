@@ -108,7 +108,7 @@ resource "aws_cloudfront_distribution" "cdn" {
   count = "${var.ssl_certificate_arn != "" ? 1 : 0}"
 
   origin {
-    domain_name = "${aws_s3_bucket.storage_bucket.bucket_domain_name}"
+    domain_name = "${aws_s3_bucket.storage_bucket.website_endpoint}"
     origin_id   = "origin-${var.domain}"
   }
 
