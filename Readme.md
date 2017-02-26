@@ -4,6 +4,7 @@ It creates:
 
     1. S3 bucket configured to serve the stored resources as a webpage
     2. Cloudfront distribution which fronts the bucket
+    3. Optionally a bucket which redirects www --> naked domain
 
 DNS configuration and publishing the website are left for the user and
 are not a scope of this module.
