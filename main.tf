@@ -1,7 +1,7 @@
 # --- Inputs ---------------------------------------------------------------
 variable region {
   description = "AWS region to use"
-  default = "us-east-1"
+  default     = "us-east-1"
 }
 
 variable domain {
@@ -10,7 +10,7 @@ variable domain {
 
 variable index_document {
   description = "Document to serve if the root of the domain is requested"
-  default = "index.html"
+  default     = "index.html"
 }
 
 variable error_404_document {
@@ -18,15 +18,14 @@ variable error_404_document {
 }
 
 variable ssl_certificate_arn {
-  default = ""
+  default     = ""
   description = "ARN of the certificate covering the domain plus subdomains under which the website is accessed, e.g. domain.com and *.domain.com"
 }
 
 variable redirect_www {
-  default = ""
+  default     = ""
   description = "Redirect www.${domain} --> https://${domain}. If not set do not redirect."
 }
-
 
 # --- Outputs --------------------------------------------------------------
 output "s3_url" {
@@ -49,13 +48,12 @@ output "cloudfront_hosted_zone_id" {
   value = "${aws_cloudfront_distribution.cdn.hosted_zone_id}"
 }
 
-
 # --- Resource configuraiton -----------------------------------------------
 
 # Bucket to store the static website
 resource "aws_s3_bucket" "storage_bucket" {
   bucket = "${var.domain}"
-  acl = "public-read"
+  acl    = "public-read"
 
   policy = <<EOF
 {
@@ -81,9 +79,9 @@ EOF
 # Bucket to redirect www --> non-www
 resource "aws_s3_bucket" "www_redirect" {
   count = "${var.redirect_www != "" ? 1 : 0}"
-  
+
   bucket = "www.${var.domain}"
-  acl = "public-read"
+  acl    = "public-read"
 
   policy = <<EOF
 {
@@ -105,25 +103,24 @@ EOF
   }
 }
 
-
 # Cloudfront in front of the bucket
 resource "aws_cloudfront_distribution" "cdn" {
   count = "${var.ssl_certificate_arn != "" ? 1 : 0}"
-  
+
   origin {
     domain_name = "${aws_s3_bucket.storage_bucket.bucket_domain_name}"
     origin_id   = "origin-${var.domain}"
   }
 
-  enabled             = true
+  enabled = true
 
   default_root_object = "${var.index_document}"
 
   custom_error_response {
-    error_code = "404"
+    error_code            = "404"
     error_caching_min_ttl = "300"
-    response_code = "404"
-    response_page_path = "/${var.error_404_document}"
+    response_code         = "404"
+    response_page_path    = "/${var.error_404_document}"
   }
 
   aliases = ["${var.domain}"]
@@ -154,11 +151,10 @@ resource "aws_cloudfront_distribution" "cdn" {
       restriction_type = "none"
     }
   }
-  
+
   viewer_certificate {
-    acm_certificate_arn = "${var.ssl_certificate_arn}"
-    ssl_support_method = "sni-only"
+    acm_certificate_arn      = "${var.ssl_certificate_arn}"
+    ssl_support_method       = "sni-only"
     minimum_protocol_version = "TLSv1"
   }
 }
-
