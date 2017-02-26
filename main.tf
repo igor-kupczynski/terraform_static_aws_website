@@ -110,6 +110,15 @@ resource "aws_cloudfront_distribution" "cdn" {
   origin {
     domain_name = "${aws_s3_bucket.storage_bucket.website_endpoint}"
     origin_id   = "origin-${var.domain}"
+
+    # Magic sauce required for the aws api to accept cdn pointing to s3 website endpoint
+    # http://stackoverflow.com/questions/40095803/how-do-you-create-an-aws-cloudfront-distribution-that-points-to-an-s3-static-ho#40096056
+    custom_origin_config {
+      origin_protocol_policy = "http-only"
+      http_port = "80"
+      https_port = "443"
+      origin_ssl_protocols = ["TLSv1"]
+    }
   }
 
   enabled = true
