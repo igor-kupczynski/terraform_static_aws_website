@@ -99,7 +99,7 @@ resource "aws_s3_bucket" "www_redirect" {
 EOF
 
   website {
-    redirect_all_requests_to = "https://${var.domain}"
+    redirect_all_requests_to = "${var.domain}"
   }
 }
 
