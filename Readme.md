@@ -4,8 +4,7 @@ It creates:
 
     1. S3 bucket configured to serve the stored resources as a webpage
     2. Cloudfront distribution which fronts the bucket
-    3. Optionally a bucket which redirects www (or other subdomain)
-       --> naked domain
+    3. Optionally a bucket which redirects www (or other subdomain) --> naked domain (and a cloud front if certificate arn is provided)
 
 DNS configuration and publishing the website are left for the user and
 are not a scope of this module (yet).
@@ -31,7 +30,8 @@ module "geek_igor_hosting" {
   domain              = "${var.domain}"     # for example "kupczynski.info"
   index_document      = "index.html"
   error_404_document  = "errors/404.html"
-  redirect_subdomain  = "igor"              # usually this is www
-  ssl_certificate_arn = "${var.cert}"       # can be generated in aws certificate manager
+  redirect_subdomain  = "igor"              # usually this is www, skip if you don't need a subdomain redirect
+  ssl_certificate_arn = "${var.cert}"       # can be generated in aws certificate manager, skip if you don't need a https connection
+                                            #  managed by aws; skipping this won't generate a cloud front distribution at all
 }
 ```
