@@ -22,9 +22,9 @@ variable ssl_certificate_arn {
   description = "ARN of the certificate covering the domain plus subdomains under which the website is accessed, e.g. domain.com and *.domain.com"
 }
 
-variable redirect_www {
+variable redirect_subdomain {
   default     = ""
-  description = "Redirect www.${domain} --> https://${domain}. If not set do not redirect."
+  description = "Redirect ${redirect_subdomain}.${domain} --> ${domain}. If not set do not redirect."
 }
 
 # --- Outputs --------------------------------------------------------------
@@ -32,8 +32,8 @@ output "s3_url" {
   value = "${aws_s3_bucket.storage_bucket.website_endpoint}"
 }
 
-output "s3_www_url" {
-  value = "${aws_s3_bucket.storage_bucket.www_redirect}"
+output "s3_subdomain_url" {
+  value = "${aws_s3_bucket.storage_bucket.redirect_subdomain}"
 }
 
 output "cloudfront_url" {
@@ -47,6 +47,19 @@ output "cloudfront_domain_name" {
 output "cloudfront_hosted_zone_id" {
   value = "${aws_cloudfront_distribution.cdn.hosted_zone_id}"
 }
+
+output "cloudfront_subdomain_redirect_url" {
+  value = "${aws_cloudfront_distribution.cdn_redirect_subdomain.domain_name}"
+}
+
+output "cloudfront_subdomain_redirect_domain_name" {
+  value = "${aws_cloudfront_distribution.cdn_redirect_subdomain.domain_name}"
+}
+
+output "cloudfront_subdomain_redirect_hosted_zone_id" {
+  value = "${aws_cloudfront_distribution.cdn_redirect_subdomain.hosted_zone_id}"
+}
+
 
 # --- Resource configuraiton -----------------------------------------------
 
@@ -76,34 +89,19 @@ EOF
   }
 }
 
-# Bucket to redirect www --> non-www
-resource "aws_s3_bucket" "www_redirect" {
-  count = "${var.redirect_www != "" ? 1 : 0}"
+# Bucket to redirect subdomain --> non-subdomain
+resource "aws_s3_bucket" "redirect_subdomain" {
+  count = "${var.redirect_subdomain != "" ? 1 : 0}"
 
-  bucket = "www.${var.domain}"
+  bucket = "${var.redirect_subdomain}.${var.domain}"
   acl    = "public-read"
-
-  policy = <<EOF
-{
-  "Version":"2012-10-17",
-  "Statement":[{
-	"Sid":"PublicReadGetObject",
-        "Effect":"Allow",
-	  "Principal": "*",
-      "Action":["s3:GetObject"],
-      "Resource":["arn:aws:s3:::www.${var.domain}/*"
-      ]
-    }
-  ]
-}
-EOF
 
   website {
     redirect_all_requests_to = "${var.domain}"
   }
 }
 
-# Cloudfront in front of the bucket
+# Cloudfront in front of the main site
 resource "aws_cloudfront_distribution" "cdn" {
   count = "${var.ssl_certificate_arn != "" ? 1 : 0}"
 
@@ -111,7 +109,7 @@ resource "aws_cloudfront_distribution" "cdn" {
     domain_name = "${aws_s3_bucket.storage_bucket.website_endpoint}"
     origin_id   = "origin-${var.domain}"
 
-    # Magic sauce required for the aws api to accept cdn pointing to s3 website endpoint
+    # Secret sauce required for the aws api to accept cdn pointing to s3 website endpoint
     # http://stackoverflow.com/questions/40095803/how-do-you-create-an-aws-cloudfront-distribution-that-points-to-an-s3-static-ho#40096056
     custom_origin_config {
       origin_protocol_policy = "http-only"
@@ -150,6 +148,62 @@ resource "aws_cloudfront_distribution" "cdn" {
     }
 
     viewer_protocol_policy = "redirect-to-https"
+    min_ttl                = 0
+    default_ttl            = 300
+    max_ttl                = 1200
+  }
+
+  restrictions {
+    geo_restriction {
+      restriction_type = "none"
+    }
+  }
+
+  viewer_certificate {
+    acm_certificate_arn      = "${var.ssl_certificate_arn}"
+    ssl_support_method       = "sni-only"
+    minimum_protocol_version = "TLSv1"
+  }
+}
+
+
+# Cloudfront in front of the subdomain redirect bucket
+resource "aws_cloudfront_distribution" "cdn_redirect_subdomain" {
+
+  count = "${(var.ssl_certificate_arn != "" ? 1 : 0) * (var.redirect_subdomain != "" ? 1 : 0)}"
+  
+  origin {
+    domain_name = "${aws_s3_bucket.redirect_subdomain.website_endpoint}"
+    origin_id   = "origin-${var.redirect_subdomain}.${var.domain}"
+
+    custom_origin_config {
+      origin_protocol_policy = "http-only"
+      http_port = "80"
+      https_port = "443"
+      origin_ssl_protocols = ["TLSv1"]
+    }
+  }
+
+  enabled = true
+
+  aliases = ["igor.${var.domain}"]
+
+  price_class = "PriceClass_100"
+
+  default_cache_behavior {
+    allowed_methods  = ["GET", "HEAD"]
+    cached_methods   = ["GET", "HEAD"]
+    target_origin_id = "origin-${var.redirect_subdomain}.${var.domain}"
+
+    forwarded_values {
+      query_string = false
+
+      cookies {
+        forward = "none"
+      }
+    }
+
+    viewer_protocol_policy = "allow-all"
     min_ttl                = 0
     default_ttl            = 300
     max_ttl                = 1200
