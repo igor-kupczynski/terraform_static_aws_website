@@ -32,6 +32,11 @@ variable invalidate_cloud_front_on_s3_update {
   description = "Setup lambda to invalidate CDN on S3 updates"
 }
 
+variable default_cdn_ttl {
+  default     = 5184000
+  description = "TTL of the cached objects, defaults to 60 days"
+}
+
 # --- Outputs --------------------------------------------------------------
 output "s3_url" {
   value = "${aws_s3_bucket.storage_bucket.website_endpoint}"
@@ -133,7 +138,7 @@ resource "aws_cloudfront_distribution" "cdn" {
 
   custom_error_response {
     error_code            = "404"
-    error_caching_min_ttl = "300"
+    error_caching_min_ttl = "${var.default_cdn_ttl}"
     response_code         = "404"
     response_page_path    = "/${var.error_404_document}"
   }
@@ -156,9 +161,7 @@ resource "aws_cloudfront_distribution" "cdn" {
     }
 
     viewer_protocol_policy = "redirect-to-https"
-    min_ttl                = 0
-    default_ttl            = 300
-    max_ttl                = 1200
+    default_ttl            = "${var.default_cdn_ttl}"
   }
 
   restrictions {
@@ -210,9 +213,7 @@ resource "aws_cloudfront_distribution" "cdn_redirect_subdomain" {
     }
 
     viewer_protocol_policy = "allow-all"
-    min_ttl                = 0
-    default_ttl            = 300
-    max_ttl                = 1200
+    default_ttl            = "${var.default_cdn_ttl}"
   }
 
   restrictions {
