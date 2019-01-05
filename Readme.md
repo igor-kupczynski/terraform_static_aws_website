@@ -30,7 +30,7 @@ module "geek_igor_hosting" {
   domain              = "${var.domain}"     # for example "kupczynski.info"
   index_document      = "index.html"
   error_404_document  = "errors/404.html"
-  redirect_subdomain  = "igor"              # usually this is www, skip if you don't need a subdomain redirect
+  redirect_subdomain  = "www"               # usually this is "www", skip if you don't need a subdomain redirect
   ssl_certificate_arn = "${var.cert}"       # can be generated in aws certificate manager, skip if you don't need a https connection
                                             #  managed by aws; skipping this won't generate a cloud front distribution at all
 }
