@@ -27,6 +27,11 @@ variable redirect_subdomain {
   description = "Redirect ${redirect_subdomain}.${domain} --> ${domain}. If not set do not redirect."
 }
 
+variable invalidate_cloud_front_on_s3_update {
+  default     = true
+  description = "Setup lambda to invalidate CDN on S3 updates"
+}
+
 # --- Outputs --------------------------------------------------------------
 output "s3_url" {
   value = "${aws_s3_bucket.storage_bucket.website_endpoint}"
