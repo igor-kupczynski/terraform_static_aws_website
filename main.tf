@@ -33,33 +33,32 @@ output "s3_url" {
 }
 
 output "s3_subdomain_url" {
-  value = "${aws_s3_bucket.storage_bucket.redirect_subdomain}"
+  value = "${aws_s3_bucket.redirect_subdomain.0.bucket}"
 }
 
 output "cloudfront_url" {
-  value = "${aws_cloudfront_distribution.cdn.domain_name}"
+  value = "${aws_cloudfront_distribution.cdn.0.domain_name}"
 }
 
 output "cloudfront_domain_name" {
-  value = "${aws_cloudfront_distribution.cdn.domain_name}"
+  value = "${aws_cloudfront_distribution.cdn.0.domain_name}"
 }
 
 output "cloudfront_hosted_zone_id" {
-  value = "${aws_cloudfront_distribution.cdn.hosted_zone_id}"
+  value = "${aws_cloudfront_distribution.cdn.0.hosted_zone_id}"
 }
 
 output "cloudfront_subdomain_redirect_url" {
-  value = "${aws_cloudfront_distribution.cdn_redirect_subdomain.domain_name}"
+  value = "${aws_cloudfront_distribution.cdn_redirect_subdomain.0.domain_name}"
 }
 
 output "cloudfront_subdomain_redirect_domain_name" {
-  value = "${aws_cloudfront_distribution.cdn_redirect_subdomain.domain_name}"
+  value = "${aws_cloudfront_distribution.cdn_redirect_subdomain.0.domain_name}"
 }
 
 output "cloudfront_subdomain_redirect_hosted_zone_id" {
-  value = "${aws_cloudfront_distribution.cdn_redirect_subdomain.hosted_zone_id}"
+  value = "${aws_cloudfront_distribution.cdn_redirect_subdomain.0.hosted_zone_id}"
 }
-
 
 # --- Resource configuraiton -----------------------------------------------
 
@@ -67,6 +66,15 @@ output "cloudfront_subdomain_redirect_hosted_zone_id" {
 resource "aws_s3_bucket" "storage_bucket" {
   bucket = "${var.domain}"
   acl    = "public-read"
+
+  website {
+    index_document = "${var.index_document}"
+    error_document = "${var.error_404_document}"
+  }
+}
+
+resource "aws_s3_bucket_policy" "storage_bucket" {
+  bucket = "${aws_s3_bucket.storage_bucket.id}"
 
   policy = <<EOF
 {
@@ -82,11 +90,6 @@ resource "aws_s3_bucket" "storage_bucket" {
   ]
 }
 EOF
-
-  website {
-    index_document = "${var.index_document}"
-    error_document = "${var.error_404_document}"
-  }
 }
 
 # Bucket to redirect subdomain --> non-subdomain
@@ -113,9 +116,9 @@ resource "aws_cloudfront_distribution" "cdn" {
     # http://stackoverflow.com/questions/40095803/how-do-you-create-an-aws-cloudfront-distribution-that-points-to-an-s3-static-ho#40096056
     custom_origin_config {
       origin_protocol_policy = "http-only"
-      http_port = "80"
-      https_port = "443"
-      origin_ssl_protocols = ["TLSv1"]
+      http_port              = "80"
+      https_port             = "443"
+      origin_ssl_protocols   = ["TLSv1"]
     }
   }
 
@@ -166,21 +169,19 @@ resource "aws_cloudfront_distribution" "cdn" {
   }
 }
 
-
 # Cloudfront in front of the subdomain redirect bucket
 resource "aws_cloudfront_distribution" "cdn_redirect_subdomain" {
-
   count = "${(var.ssl_certificate_arn != "" ? 1 : 0) * (var.redirect_subdomain != "" ? 1 : 0)}"
-  
+
   origin {
     domain_name = "${aws_s3_bucket.redirect_subdomain.website_endpoint}"
     origin_id   = "origin-${var.redirect_subdomain}.${var.domain}"
 
     custom_origin_config {
       origin_protocol_policy = "http-only"
-      http_port = "80"
-      https_port = "443"
-      origin_ssl_protocols = ["TLSv1"]
+      http_port              = "80"
+      https_port             = "443"
+      origin_ssl_protocols   = ["TLSv1"]
     }
   }
 
