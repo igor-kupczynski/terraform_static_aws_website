@@ -45,7 +45,7 @@ resource "aws_iam_policy" "invalidate_cloud_front_policy" {
                 "cloudfront:CreateInvalidation"
             ],
             "Resource": [
-                "*"
+                "${aws_cloudfront_distribution.cdn.0.arn}"
             ]
         }
     ]
